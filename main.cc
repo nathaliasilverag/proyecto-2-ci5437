@@ -42,7 +42,7 @@ hash_table_t TTable[2];
 //int minmax(state_t state, int depth, bool use_tt = false);
 //int maxmin(state_t state, int depth, bool use_tt = false);
 
-bool test(state_t state, int color, int score, bool conditional) {
+bool test(state_t state, int color, int score, bool conditional, int depth) {
 
     ++generated;
     if (state.terminal())
@@ -52,16 +52,16 @@ bool test(state_t state, int color, int score, bool conditional) {
     auto moves = state.get_moves(color == 1);
     for (int i = 0; i < (int)moves.size(); ++i) {
         auto child = state.move(color == 1, moves[i]);
-        if (color == 1 && test(child, -color, score, conditional))
+        if (color == 1 && test(child, -color, score, conditional, depth - 1))
             return true;
-        if (color == -1 && !test(child, -color, score, conditional))
+        if (color == -1 && !test(child, -color, score, conditional, depth - 1))
             return false;
     }
 
     if (moves.size() == 0) {
-        if (color == 1 && test(state, -color, score, conditional))
+        if (color == 1 && test(state, -color, score, conditional, depth - 1))
             return true;
-        if (color == -1 && !test(state, -color, score, conditional))
+        if (color == -1 && !test(state, -color, score, conditional, depth - 1))
             return false;
     }
 
@@ -128,9 +128,9 @@ int scout(state_t state, int depth, int color, bool use_tt = false) {
         if (i == 0)
             score = scout(child,depth-1, -color,use_tt);
         else {
-            if (color == 1 && test(child, -color, score, 0))
+            if (color == 1 && test(child, -color, score, 0,depth))
                 score = scout(child, depth-1,-color,use_tt);
-            if (color == -1 && !test(child, -color, score, 1))
+            if (color == -1 && !test(child, -color, score, 1,depth))
                 score = scout(child, depth-1,-color,use_tt);
         }
     }
