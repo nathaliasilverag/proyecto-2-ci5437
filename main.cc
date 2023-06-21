@@ -115,28 +115,6 @@ int negamax(state_t state, int depth, int alpha, int beta, int color, bool use_t
     return alpha;
 }
 
-
-/*int negamax(const state_t& state, int depth, int alpha, int beta, int color, bool use_tt) {
-    if (depth == 0 || state.terminal()) {
-        return color * state.value();
-    }
-
-    int mejorValor = std::numeric_limits<int>::min();
-
-    for (const auto& child : state.children()) {
-        ++generated;
-        int valor = -negamax(child, depth - 1, -beta, -alpha, -color, use_tt);
-        mejorValor = std::max(mejorValor, valor);
-        alpha = std::max(alpha, valor);
-        if (alpha >= beta) {
-            break;  // Poda alfa-beta
-        }
-    }
-
-    ++expanded;
-    return mejorValor;
-}
-
 int Scout(const EstadoJuego& estado, int alpha, int beta, int depth, int color, bool use_tt) {
     if (depth == 0 || JuegoTerminado(estado)) {
         return color * EvaluarEstado(estado, color);
