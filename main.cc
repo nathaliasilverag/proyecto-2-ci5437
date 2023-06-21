@@ -16,6 +16,8 @@ using namespace std;
 unsigned expanded = 0;
 unsigned generated = 0;
 int tt_threshold = 32; // threshold to save entries in TT
+const int INF = 1000; // un valor grande para representar infinito
+
 
 // Transposition table (it is not necessary to implement TT)
 struct stored_info_t {
@@ -39,10 +41,170 @@ hash_table_t TTable[2];
 //int maxmin(state_t state, int depth, bool use_tt);
 //int minmax(state_t state, int depth, bool use_tt = false);
 //int maxmin(state_t state, int depth, bool use_tt = false);
-int negamax(state_t state, int depth, int color, bool use_tt = false);
-int negamax(state_t state, int depth, int alpha, int beta, int color, bool use_tt = false);
 int scout(state_t state, int depth, int color, bool use_tt = false);
 int negascout(state_t state, int depth, int alpha, int beta, int color, bool use_tt = false);
+
+bool test(state_t state, int color, int score, bool conditional) {
+
+    ++generated;
+    if (state.terminal())
+        return (conditional ? state.value() >= score : state.value() > score);
+
+    ++expanded;
+    auto moves = state.get_moves(color == 1);
+    for (int i = 0; i < (int)moves.size(); ++i) {
+        auto child = state.move(color == 1, moves[i]);
+        if (color == 1 && test(child, -color, score, conditional))
+            return true;
+        if (color == -1 && !test(child, -color, score, conditional))
+            return false;
+    }
+
+    if (moves.size() == 0) {
+        if (color == 1 && test(state, -color, score, conditional))
+            return true;
+        if (color == -1 && !test(state, -color, score, conditional))
+            return false;
+    }
+
+    return color == -1;
+}
+
+// Función de búsqueda Negamax
+int negamax(state_t state, int depth, int color, bool use_tt = false) {
+    ++generated;
+    if (state.terminal())
+        return color * state.value();
+
+    int score = -INF;
+    bool moved = false;
+    for (int p : state.get_moves(color == 1)) {
+        moved = true;
+        score = std::max(
+            score,
+            -negamax(state.move(color == 1, p), depth - 1, -color, use_tt)
+        );
+    }
+
+    if (!moved)
+        score = -negamax(state, depth, -color, use_tt);
+
+    ++expanded;
+    return score;
+}
+
+//int negamax(state_t state, int depth, int alpha, int beta, int color, bool use_tt = false);
+int negamax(state_t state, int depth, int alpha, int beta, int color, bool use_tt = false) {
+    ++generated;
+    if (state.terminal())
+        return color * state.value();
+
+    bool moved = false;
+    for (int p : state.get_moves(color == 1)) {
+        moved = true;
+        int value = -negamax(state.move(color == 1, p), depth - 1, -beta, -alpha, -color, use_tt);
+        alpha = std::max(alpha, value);
+        if (alpha >= beta)
+            break; // Poda alpha-beta
+    }
+
+    if (!moved)
+        alpha = -negamax(state, depth, -beta, -alpha, -color, use_tt);
+
+    ++expanded;
+    return alpha;
+}
+
+
+/*int negamax(const state_t& state, int depth, int alpha, int beta, int color, bool use_tt) {
+    if (depth == 0 || state.terminal()) {
+        return color * state.value();
+    }
+
+    int mejorValor = std::numeric_limits<int>::min();
+
+    for (const auto& child : state.children()) {
+        ++generated;
+        int valor = -negamax(child, depth - 1, -beta, -alpha, -color, use_tt);
+        mejorValor = std::max(mejorValor, valor);
+        alpha = std::max(alpha, valor);
+        if (alpha >= beta) {
+            break;  // Poda alfa-beta
+        }
+    }
+
+    ++expanded;
+    return mejorValor;
+}
+
+int Scout(const EstadoJuego& estado, int alpha, int beta, int depth, int color, bool use_tt) {
+    if (depth == 0 || JuegoTerminado(estado)) {
+        return color * EvaluarEstado(estado, color);
+    }
+
+    int mejorValor;
+    bool firstChild = true;
+
+    for (const auto& child : estado.children()) {
+        ++generated;
+
+        if (firstChild) {
+            mejorValor = -Scout(child, -beta, -alpha, depth - 1, -color, use_tt);
+            firstChild = false;
+        } else {
+            int value = -Scout(child, -alpha - 1, -alpha, depth - 1, -color, use_tt);
+            if (value > alpha && value < beta) {
+                mejorValor = -Scout(child, -beta, -value, depth - 1, -color, use_tt);
+            } else {
+                mejorValor = value;
+            }
+        }
+
+        alpha = std::max(alpha, mejorValor);
+        if (alpha >= beta) {
+            break;  // Poda alfa-beta
+        }
+    }
+
+    ++expanded;
+    return mejorValor;
+}
+
+int Negascout(const EstadoJuego& estado, int profundidad, int alpha, int beta, int color, bool use_tt) {
+    if (profundidad == 0 || JuegoTerminado(estado)) {
+        return color * EvaluarEstado(estado, color);
+    }
+
+    int mejorValor;
+    bool firstChild = true;
+
+    for (const auto& child : estado.children()) {
+        ++generated;
+
+        if (firstChild) {
+            mejorValor = -Negascout(child, profundidad - 1, -beta, -alpha, -color, use_tt);
+            firstChild = false;
+        } else {
+            int value = -Negascout(child, profundidad - 1, -alpha - 1, -alpha, -color, use_tt);
+            if (value > alpha && value < beta) {
+                mejorValor = -Negascout(child, profundidad - 1, -beta, -value, -color, use_tt);
+            } else {
+                mejorValor = value;
+            }
+        }
+
+        alpha = std::max(alpha, mejorValor);
+        if (alpha >= beta) {
+            break;  // Poda alfa-beta
+        }
+    }
+
+    ++expanded;
+    return mejorValor;
+}
+
+
+*/
 
 int main(int argc, const char **argv) {
     state_t pv[128];
@@ -97,9 +259,9 @@ int main(int argc, const char **argv) {
 
         try {
             if( algorithm == 1 ) {
-                //value = negamax(pv[i], 0, color, use_tt);
+                value = negamax(pv[i], 0, color, use_tt);
             } else if( algorithm == 2 ) {
-                //value = negamax(pv[i], 0, -200, 200, color, use_tt);
+                value = negamax(pv[i], 0, -200, 200, color, use_tt);
             } else if( algorithm == 3 ) {
                 //value = scout(pv[i], 0, color, use_tt);
             } else if( algorithm == 4 ) {
@@ -124,4 +286,5 @@ int main(int argc, const char **argv) {
 
     return 0;
 }
+
 
