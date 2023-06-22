@@ -69,7 +69,7 @@ bool test(state_t state, int color, int score, bool conditional, int depth) {
 }
 
 // Función de búsqueda Negamax
-int negamax(state_t state, int depth, int color, bool use_tt = false) {
+int negamax(state_t state, int depth, int color) {
     ++generated;
     if (state.terminal())
         return color * state.value();
@@ -80,19 +80,19 @@ int negamax(state_t state, int depth, int color, bool use_tt = false) {
         moved = true;
         score = std::max(
             score,
-            -negamax(state.move(color == 1, p), depth - 1, -color, use_tt)
+            -negamax(state.move(color == 1, p), depth - 1, -color)
         );
     }
 
     if (!moved)
-        score = -negamax(state, depth, -color, use_tt);
+        score = -negamax(state, depth, -color);
 
     ++expanded;
     return score;
 }
 
 //int negamax(state_t state, int depth, int alpha, int beta, int color, bool use_tt = false);
-int negamax(state_t state, int depth, int alpha, int beta, int color, bool use_tt = false) {
+int negamax(state_t state, int depth, int alpha, int beta, int color) {
     ++generated;
     if (state.terminal())
         return color * state.value();
@@ -100,21 +100,20 @@ int negamax(state_t state, int depth, int alpha, int beta, int color, bool use_t
     bool moved = false;
     for (int p : state.get_moves(color == 1)) {
         moved = true;
-        int value = -negamax(state.move(color == 1, p), depth - 1, -beta, -alpha, -color, use_tt);
+        int value = -negamax(state.move(color == 1, p), depth - 1, -beta, -alpha, -color);
         alpha = std::max(alpha, value);
         if (alpha >= beta)
             break; // Poda alpha-beta
     }
 
     if (!moved)
-        alpha = -negamax(state, depth, -beta, -alpha, -color, use_tt);
+        alpha = -negamax(state, depth, -beta, -alpha, -color);
 
     ++expanded;
     return alpha;
 }
 
-
-int scout(state_t state, int depth, int color, bool use_tt = false) {
+int scout(state_t state, int depth, int color) {
     ++generated;
     if (state.terminal())
         return state.value();
@@ -126,22 +125,22 @@ int scout(state_t state, int depth, int color, bool use_tt = false) {
         auto child = state.move(color == 1, moves[i]);
         // primer hijo
         if (i == 0)
-            score = scout(child,depth-1, -color,use_tt);
+            score = scout(child,depth-1, -color);
         else {
             if (color == 1 && test(child, -color, score, 0,depth))
-                score = scout(child, depth-1,-color,use_tt);
+                score = scout(child, depth-1,-color);
             if (color == -1 && !test(child, -color, score, 1,depth))
-                score = scout(child, depth-1,-color,use_tt);
+                score = scout(child, depth-1,-color);
         }
     }
     if (moves.size() == 0)
-        score = scout(state,depth-1,-color,use_tt);
+        score = scout(state,depth-1,-color);
 
     ++expanded;
     return score;
 }
 
-int negascout(state_t state, int depth, int alpha, int beta, int color, bool use_tt = false) {
+int negascout(state_t state, int depth, int alpha, int beta, int color) {
     ++generated;
     if (state.terminal())
         return color * state.value();
@@ -152,11 +151,11 @@ int negascout(state_t state, int depth, int alpha, int beta, int color, bool use
         auto child = state.move(color == 1, moves[i]);
         // primer hijo
         if (i == 0)
-            score = -negascout(child, depth - 1, -beta, -alpha, -color, use_tt);
+            score = -negascout(child, depth - 1, -beta, -alpha, -color);
         else {
-            score = -negascout(child, depth - 1, -alpha - 1, -alpha, -color, use_tt);
+            score = -negascout(child, depth - 1, -alpha - 1, -alpha, -color);
             if (alpha < score && score < beta)
-                score = -negascout(child, depth - 1, -beta, -score, -color, use_tt);
+                score = -negascout(child, depth - 1, -beta, -score, -color);
         }
 
         alpha = std::max(alpha, score);
@@ -166,7 +165,7 @@ int negascout(state_t state, int depth, int alpha, int beta, int color, bool use
 
     // no se logró poner fichas, pasar turno
     if (moves.size() == 0)
-        alpha = -negascout(state, depth - 1, -beta, -alpha, -color, use_tt);
+        alpha = -negascout(state, depth - 1, -beta, -alpha, -color);
 
     ++expanded;
     return alpha;
@@ -227,13 +226,13 @@ int main(int argc, const char **argv) {
 
         try {
             if( algorithm == 1 ) {
-                value = negamax(pv[i], 0, color, use_tt);
+                value = negamax(pv[i], 0, color);
             } else if( algorithm == 2 ) {
-                value = negamax(pv[i], 0, -200, 200, color, use_tt);
+                value = negamax(pv[i], 0, -200, 200, color);
             } else if( algorithm == 3 ) {
-                value = scout(pv[i], 0, color, use_tt);;
+                value = scout(pv[i], 0, color);
             } else if( algorithm == 4 ) {
-                value = negascout(pv[i], 0, -200, 200, color, use_tt);
+                value = negascout(pv[i], 0, -200, 200, color);
             }
         } catch( const bad_alloc &e ) {
             cout << "size TT[0]: size=" << TTable[0].size() << ", #buckets=" << TTable[0].bucket_count() << endl;
